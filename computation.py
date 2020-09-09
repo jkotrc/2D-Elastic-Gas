@@ -3,7 +3,6 @@ import pycuda.autoinit
 import pycuda.driver as drv
 from pycuda.compiler import SourceModule
 
-from constants import *
 
 def mag(x):
     return np.sqrt(sum(i**2 for i in x))
@@ -21,28 +20,39 @@ def getmodule(path):
     return SourceModule(source)
 
 
+
 class Computation:
-    def __init__(self):
-        self.v = np.zeros((2,BALLCOUNT), dtype=np.float32)
-        self.pos = np.zeros((2,BALLCOUNT), dtype=np.float32)
-        self.module = getmodule("boltzmann.cu")
-        self.cstep = self.module.get_function("step")
-        self.ccheck = self.module.get_function("collisioncheck")
-        for i in range(0, YBALLS):
-            for j in range(0, XBALLS):
-                initx = (((j + 1) * SPACE) - 1)-WIDTH
-                inity = ((-1 * (i + 1) * SPACE) + 1)+HEIGHT
-                self.pos[:, XBALLS * i + j] = [initx, inity];
-                self.v[:,XBALLS*i+j] = [np.random.uniform(-INITSPEED,INITSPEED),np.random.uniform(-INITSPEED,INITSPEED)];
+    def __init__(self, width=1000, height=1000, space=30, xballs=50, yballs=50, speedrange=2,size=5,frameskip=1,epsilon=0.00001,blocksize=512):
+        self.width=np.float32(width)
+        self.height=np.float32(height)
+        self.xballs=xballs
+        self.yballs=yballs
+        self.N=np.int32(xballs*yballs) #CUDA takes in 32 bit ints
+        self.speedrange=speedrange
+        self.size=np.float32(size)
+        self.space=space
+        self.frameskip=frameskip
+        self.epsilon=np.float32(epsilon)
+        self.blocksize=blocksize
+        iterations = int(self.N*(self.N-1)/2)
+        self.gridsize = int(np.ceil(iterations/self.blocksize));
+        print(f"There are {self.N} balls --> {iterations} iterations... Meaning {self.gridsize} blocks of size {self.blocksize}")
+        self.v = np.zeros((2,self.N), dtype=np.float32)
+        self.pos = np.zeros((2,self.N), dtype=np.float32)
+        print(f"coords have shape {np.shape(self.pos)}")
+        self.module=getmodule("boltzmann.cu")
+        self.cstep = self.module.get_function("step_kernel")
 
+        for i in range(0, yballs):
+            for j in range(0, xballs):
+                initx = (((j + 1) * self.space) - 1)-width
+                inity = ((-1 * (i + 1) * self.space) + 1)+height
+                self.pos[:, xballs * i + j] = [initx, inity];
+                self.v[:,xballs*i+j] = [np.random.uniform(-speedrange,speedrange),np.random.uniform(-speedrange,speedrange)];
+                print(f"VEL: {self.v[:,xballs*i+j]}")
+
+
+#double *posx, double *posy, double *vx, double *vy, int N, double size, double epsilon, double width, double height
     def cudastep(self):
-        #Python's integers aren't 32 bit but CUDA wants that
-        N = np.int32(BALLCOUNT)
-
-        grid_size = int((N - 1 + BLOCKSIZE) / BLOCKSIZE)
-        self.cstep(drv.InOut(self.pos[0]), drv.InOut(self.pos[1]), drv.InOut(self.v[0]), drv.InOut(self.v[1]), N,
-                   np.float32(SIZE), np.float32(EPSILON), np.float32(WIDTH), np.float32(HEIGHT), block=(BLOCKSIZE, 1, 1), grid=(grid_size,1));
-
-        grid_size = int((((N - 1) * (N / 2)) - 1 + BLOCKSIZE) / BLOCKSIZE);
-        self.ccheck(drv.InOut(self.pos[0]), drv.InOut(self.pos[1]), drv.InOut(self.v[0]), drv.InOut(self.v[1]), N,
-                    np.float32(SIZE), np.float32(WIDTH), np.float32(HEIGHT), block=(BLOCKSIZE, 1, 1), grid=(grid_size, 1));
+        self.cstep(drv.InOut(self.pos[0]), drv.InOut(self.pos[1]), drv.InOut(self.v[0]), drv.InOut(self.v[1])
+                            ,self.N,self.size,self.epsilon,self.width,self.height, block=(self.blocksize,1,1), grid=(self.gridsize,1))
