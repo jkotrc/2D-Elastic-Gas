@@ -34,6 +34,28 @@ __global__ void step_kernel(float *posx, float *posy, float *vx, float *vy, int 
 					posy[j] -= (size/magnitude-0.8)*(posy[k]-posy[j]);
 				}
 
+			//ideally this shouldn't run in every thread. Will be fixed when this file gets compiled into a library
+			if(idx == 0) {
+				if (posx[0] >= width-size/2) {
+					vx[0] *= -1;
+					posx[0] = width-size/2;
+				}
+				if (posx[0] <= -width+size/2) {
+					vx[0] *= -1;
+					posx[0] = -width+size/2;
+				}
+				if (posy[0] >= height-size/2) {
+					vy[0] *= -1;
+					posy[0] = height-size/2;
+				}
+				if (posy[0] <= -height+size/2) {
+					vy[0] *= -1;
+					posy[0] = -height+size/2;
+				}
+				posx[0]+=epsilon*vx[0];
+				posy[0]+=epsilon*vy[0];
+			}
+
 			if (posx[j] >= width-size/2) {
 				vx[j] *= -1;
 				posx[j] = width-size/2;
@@ -50,27 +72,6 @@ __global__ void step_kernel(float *posx, float *posy, float *vx, float *vy, int 
 				vy[j] *= -1;
 				posy[j] = -height+size/2;
 			}
-			
-			if (posx[k] >= width-size/2) {
-				vx[k] *= -1;
-				posx[k] = width-size/2;
-			}
-			if (posx[k] <= -width+size/2) {
-				vx[k] *= -1;
-				posx[k] = -width+size/2;
-			}
-			if (posy[k] >= height-size/2) {
-				vy[k] *= -1;
-				posy[k] = height-size/2;
-			}
-			if (posy[k] <= -height+size/2) {
-				vy[k] *= -1;
-				posy[k] = -height+size/2;
-			}
-
 			posx[j]+=epsilon*vx[j];
 			posy[j]+=epsilon*vy[j];
-
-			posx[k]+=epsilon*vx[k];
-			posy[k]+=epsilon*vy[k];
 }

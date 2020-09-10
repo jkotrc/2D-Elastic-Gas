@@ -77,6 +77,7 @@ class Graphics:
         return shader
 
 if __name__ == "__main__":
-    comp=Computation(width=1000, height=1000, space=20, xballs=80, yballs=80, speedrange=20,size=8,frameskip=2,epsilon=0.001,blocksize=512)
+    #A good configuration: 80x80 balls, space 24, width=height=1000, size=8, speedrange=20, frameskip=3, epsilon=0.01, blocksize=512
+    comp=Computation(width=1000, height=1000, space=20, xballs=100, yballs=100, speedrange=20,size=4,frameskip=1,epsilon=0.01,blocksize=512)
     g=Graphics(1000, 1000,comp)
     g.mainloop();

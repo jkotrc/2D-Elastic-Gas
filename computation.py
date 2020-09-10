@@ -36,7 +36,7 @@ class Computation:
         self.blocksize=blocksize
         iterations = int(self.N*(self.N-1)/2)
         self.gridsize = int(np.ceil(iterations/self.blocksize));
-        print(f"There are {self.N} balls --> {iterations} iterations... Meaning {self.gridsize} blocks of size {self.blocksize}")
+        print(f"There are {self.N} balls --> {iterations} loops per tick... {self.gridsize} blocks of size {self.blocksize}")
         self.v = np.zeros((2,self.N), dtype=np.float32)
         self.pos = np.zeros((2,self.N), dtype=np.float32)
         print(f"coords have shape {np.shape(self.pos)}")
@@ -49,7 +49,6 @@ class Computation:
                 inity = ((-1 * (i + 1) * self.space) + 1)+height
                 self.pos[:, xballs * i + j] = [initx, inity];
                 self.v[:,xballs*i+j] = [np.random.uniform(-speedrange,speedrange),np.random.uniform(-speedrange,speedrange)];
-                print(f"VEL: {self.v[:,xballs*i+j]}")
 
 
 #double *posx, double *posy, double *vx, double *vy, int N, double size, double epsilon, double width, double height
